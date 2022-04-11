@@ -1,3 +1,5 @@
+import datetime
+
 from fotogo_networking.endpoints import app
 import json
 import base64
@@ -8,8 +10,8 @@ from fotogo_networking.exceptions import UserNotExistsException
 
 
 def main():
-    # from firebase_access.data_structures import Album
-    # from firebase_access.data_structures import DateTimeRange
+    # from db_services.data_structures import Album
+    # from db_services.data_structures import DateTimeRange
     # from datetime import datetime
     # app.db.create_album(album=Album(
     #     owner_id='cee69ZaPCtaJiKl1JAuaF8Q3if43',
@@ -74,6 +76,7 @@ def main():
         'args': {
             # OPTIONAL
             'album_data': dict(owner_id='',
+                               album_id='',
                                name='',
                                date_range=['yyyy-mm-dd',
                                            'yyyy-mm-dd'],

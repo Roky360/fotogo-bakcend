@@ -7,7 +7,7 @@ from fotogo_networking.data_transportation import *
 
 class Server:
     def __init__(self, framework):
-        self._address = ('localhost', 20200)
+        self._address = ('0.0.0.0', 20200)
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._client_accepting_thread = threading.Thread(target=self.client_acceptor)
         self._active = False
@@ -28,8 +28,8 @@ class Server:
 
     def connection_handler(self, client: socket.socket):
         id_token, request = receive_request(client)
-        res = self._framework.execute(id_token, request)
-        print(res)
+        res: Response = self._framework.execute(id_token, request)
+        print(res.__repr__())
         send_response(res, client)
 
         client.shutdown(socket.SHUT_WR)

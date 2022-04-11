@@ -8,27 +8,40 @@ class DateTimeRange:
         self.start = start
         self.end = end
 
+    def format(self):
+        return [
+            f"{str(self.start.year).zfill(4)}-{str(self.start.month).zfill(2)}-{str(self.start.day).zfill(2)}",
+            f"{str(self.end.year).zfill(4)}-{str(self.end.month).zfill(2)}-{str(self.end.day).zfill(2)}"
+        ]
+
     def __str__(self):
+        print([
+                  f"{str(self.start.year).zfill(4)}-{str(self.start.month).zfill(2)}-{str(self.start.day).zfill(2)}",
+                  f"{str(self.end.year).zfill(4)}-{str(self.end.month).zfill(2)}-{str(self.end.day).zfill(2)}"
+              ].__str__())
         return [
             f"{str(self.start.year).zfill(4)}-{str(self.start.month).zfill(2)}-{str(self.start.day).zfill(2)}",
             f"{str(self.end.year).zfill(4)}-{str(self.end.month).zfill(2)}-{str(self.end.day).zfill(2)}"
         ].__str__()
 
 
-class Album:
-    def __init__(self, owner_id: str, name: str, date_range: DateTimeRange, is_built: bool = False,
-                 tags: list[int] = None, location: GeoPoint = None, permitted_users: list[str] = None):
+class AlbumDetails:
+    def __init__(self, owner_id: str, album_id: str, name: str, date_range: DateTimeRange, is_built: bool = False,
+                 tags: list[int] = None, location: GeoPoint = None, permitted_users: list[str] = None,
+                 cover_image: str = None):
         if permitted_users is None:
             permitted_users = []
         if tags is None:
             tags = []
         self.owner_id = owner_id
+        self.id = album_id
         self.name = name
         self.date_range = date_range
         self.is_built = is_built
         self.tags = tags
         self.location = location
         self.permitted_users = permitted_users
+        self.cover_image = cover_image
 
     # def __repr__(self):
     # TODO: implement repr

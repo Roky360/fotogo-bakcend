@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
-from firebase_access.db_service import DBService
+from db_services.db_service import DBService
+from db_services.storage_service import StorageService
 from fotogo_networking.response import Response
 from fotogo_networking.server import Server
 from fotogo_networking.request_type import RequestType
@@ -11,6 +12,7 @@ class Framework:
     def __init__(self, app):
         self.server = Server(self)
         self.db = DBService(app)
+        self.storage = StorageService(app)
         self.endpoint_map: dict[RequestType, Callable] = {}
 
     def start(self):

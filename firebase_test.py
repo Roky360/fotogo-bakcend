@@ -5,8 +5,8 @@ import google.cloud.firestore_v1.client
 from firebase_admin import credentials, firestore, storage, auth
 from firebase_admin.auth import UserRecord
 
-from firebase_access.data_structures import Album, DateTimeRange, Image
-from firebase_access.db_service import DBService
+from db_services.data_structures import AlbumDetails, DateTimeRange, Image
+from db_services.db_service import DBService
 
 
 def main():

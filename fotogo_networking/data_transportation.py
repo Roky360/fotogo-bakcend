@@ -1,5 +1,7 @@
 import json
 import socket
+import time
+
 from fotogo_networking.request import Request
 from fotogo_networking.response import Response
 from fotogo_networking.request_type import RequestType
@@ -31,11 +33,12 @@ def send_response(response: Response, sender: socket.socket):
     if response_length > MAX_PAYLOAD_LENGTH:
         raise OverflowError("Response length too big!")
 
-    # response_length_bytes = response_length.to_bytes(4, byteorder='big')
-    #
-    # data = response_length_bytes + jsoned_response.encode()
+    response_length_bytes = response_length.to_bytes(4, byteorder='big')
+    print(response_length)
 
-    sender.send(jsoned_response.encode())  # WITHOUT LENGTH BEFORE JSON
+    data = response_length_bytes + jsoned_response.encode()
+
+    sender.send(data)  # WITHOUT LENGTH BEFORE JSON
 
 
 def receive_request(sender: socket.socket) -> (str, Request):
@@ -53,7 +56,9 @@ def receive_request(sender: socket.socket) -> (str, Request):
     bytes_left = data_length
     data = b''
     while bytes_left > 0:
+        # print(f"{bytes_left} left")
         read_amount = max(0, min(bytes_left, MAX_PACKET_READ_LENGTH))  # clamp bytes_left between 0 and MAX_READ
+        # print(f"read amount: {read_amount}")
         read_data = sender.recv(read_amount)
         data += read_data
         bytes_left -= len(read_data)

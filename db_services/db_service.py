@@ -1,8 +1,10 @@
+import time
+
 import firebase_admin
 import google.cloud.firestore_v1.client
 from firebase_admin import firestore, auth
 
-from firebase_access.data_structures import Album, Image
+from db_services.data_structures import AlbumDetails, Image, DateTimeRange
 from fotogo_networking.exceptions import *
 
 
@@ -55,9 +57,11 @@ class DBService:
 
     """ ALBUMS """
 
-    def create_album(self, album: Album):
+    def create_album(self, album: AlbumDetails):
         if not self.user_exists(album.owner_id):
             raise UserNotExistsException
+
+        album_id = time.time()
         self._db.collection('albums').add({
             'owner_id': album.owner_id,
             'name': album.name,
@@ -65,11 +69,12 @@ class DBService:
                 'from_date': album.date_range.start,
                 'to_date': album.date_range.end
             },
-            'is_built': False,
+            'is_built': album.is_built,
             'tags': album.tags,
             'location': album.location,
             'permitted_users': album.permitted_users,
-        })
+        }, str(album_id))
+        return str(album_id)
 
     def get_album_details(self, uid, album_id=None):
         """
@@ -85,27 +90,35 @@ class DBService:
         # get specific album by the given ID
         if album_id is not None:
             doc = self._db.collection('albums').document(album_id).get()
-            return [Album(
+            return [AlbumDetails(
                 owner_id=doc.get('owner_id'),
+                album_id=doc.id,
                 name=doc.get('name'),
-                date_range=doc.get('date_range'),
+                date_range=DateTimeRange(start=doc.get('date_range')['from_date'],
+                                         end=doc.get('date_range')['to_date']),
                 is_built=doc.get('is_built'),
                 tags=doc.get('tags'),
                 location=doc.get('location'),
-                permitted_users=doc.get('permitted_users')
+                permitted_users=doc.get('permitted_users'),
+                cover_image=
+                list(self._db.collection('images').where('containing_albums', 'array_contains', doc.id).get())[0].id
+                # id of first image in album
             )]
 
         # get all albums owned by the given user ID
         docs = self._db.collection('albums').where('owner_id', '==', uid).get()
-        print(docs)
-        return [Album(
+        return [AlbumDetails(
             owner_id=doc.get('owner_id'),
+            album_id=doc.id,
             name=doc.get('name'),
-            date_range=doc.get('date_range'),
+            date_range=DateTimeRange(start=doc.get('date_range')['from_date'], end=doc.get('date_range')['to_date']),
             is_built=doc.get('is_built'),
             tags=doc.get('tags'),
             location=doc.get('location'),
-            permitted_users=doc.get('permitted_users')
+            permitted_users=doc.get('permitted_users'),
+            cover_image=
+            list(self._db.collection('images').where('containing_albums', 'array_contains', doc.id).get())[0].id
+            # id of first image in album
         ) for doc in docs]
 
     def get_album_contents(self, album_id):
@@ -127,7 +140,7 @@ class DBService:
 
         return images
 
-    def update_album(self, album_id: str, album: Album):
+    def update_album(self, album_id: str, album: AlbumDetails):
         if not self.user_exists(album.owner_id):
             return False
             # raise Exception('Trying to update album to a user that does not exists!')
@@ -153,7 +166,7 @@ class DBService:
 
     """ IMAGES """
 
-    def upload_image(self, image: Image):
+    def add_image(self, image: Image):
         if not self.user_exists(image.owner_id):
             raise UserNotExistsException
 
