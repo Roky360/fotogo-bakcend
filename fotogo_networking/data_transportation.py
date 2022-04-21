@@ -33,10 +33,11 @@ def send_response(response: Response, sender: socket.socket):
     if response_length > MAX_PAYLOAD_LENGTH:
         raise OverflowError("Response length too big!")
 
-    response_length_bytes = response_length.to_bytes(4, byteorder='big')
-    print(response_length)
+    # response_length_bytes = response_length.to_bytes(4, byteorder='big')
+    # print(response_length)
 
-    data = response_length_bytes + jsoned_response.encode()
+    # data = response_length_bytes + jsoned_response.encode()
+    data = jsoned_response.encode()
 
     sender.send(data)  # WITHOUT LENGTH BEFORE JSON
 

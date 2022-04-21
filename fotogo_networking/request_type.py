@@ -14,8 +14,7 @@ class RequestType(IntEnum):
     UpdateAlbum = 7,
     AddToAlbum = 8,
     RemoveFromAlbum = 9,
-    BuildAlbum = 10,
-    DeleteAlbum = 11,
+    DeleteAlbum = 10,
     # Photos
-    UploadImage = 12,
-    DeleteImage = 13,
+    UploadImage = 11,
+    DeleteImage = 12,

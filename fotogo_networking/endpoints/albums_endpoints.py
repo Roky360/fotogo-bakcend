@@ -14,15 +14,17 @@ from ..status_code import StatusCode
 @app.endpoint(endpoint_id=RequestType.CreateAlbum)
 def create_album(request: Request) -> Response:
     try:
+        album_data = request.args['album_data']
         # create album
         album_id = app.db.create_album(AlbumDetails(
             album_id='',
             owner_id=request.user_id,
-            name=request.args['album_data']['name'],
-            date_range=DateTimeRange(start=datetime.strptime(request.args['album_data']['date_range'][0], '%Y-%m-%d'),
-                                     end=datetime.strptime(request.args['album_data']['date_range'][0], '%Y-%m-%d')),
+            name=album_data['name'],
+            date_range=DateTimeRange(start=datetime.strptime(album_data['date_range'][0], '%Y-%m-%d'),
+                                     end=datetime.strptime(album_data['date_range'][0], '%Y-%m-%d')),
+            last_modified=album_data['last_modified'],
             is_built=True,
-            permitted_users=request.args['album_data']['permitted_users']
+            permitted_users=album_data['permitted_users']
         ))
 
         upload_images(request, album_id)
@@ -40,7 +42,7 @@ def get_album_details(request: Request) -> Response:
     try:
         res = app.db.get_album_details(
             request.user_id,
-            request.args['album_id'] if 'album_id' in request.args else None
+            request.args['requested_albums'] if 'requested_albums' in request.args else None
         )
         album_list = [
             dict(
@@ -48,15 +50,15 @@ def get_album_details(request: Request) -> Response:
                 album_id=i.id,
                 name=i.name,
                 date_range=i.date_range.format(),
+                last_modified=str(i.last_modified),
                 is_built=i.is_built,
                 tags=i.tags,
-                location=i.location,
+                location=(i.location.longitude, i.location.latitude) if i.location is not None else None,
                 permitted_users=i.permitted_users,
-                cover_image=base64.b64encode(app.storage.get_file_bytes(f"{i.owner_id}/{i.cover_image}")).decode('ascii')
+                cover_image=base64.b64encode(app.storage.get_file_bytes(f"{i.owner_id}/{i.cover_image}")).decode(
+                    'ascii') if i.owner_id != '' else ''
             ) for i in res
         ]
-    except AlbumNotExistsException:
-        return Response(StatusCode.NotFound_404)
     except Exception as e:
         raise e
         return Response(StatusCode.InternalServerError_500)
@@ -106,11 +108,6 @@ def add_to_album(request: Request) -> Response:
 
 @app.endpoint(endpoint_id=RequestType.RemoveFromAlbum)
 def remove_from_album(request: Request) -> Response:
-    pass
-
-
-@app.endpoint(endpoint_id=RequestType.BuildAlbum)
-def build_album(request: Request) -> Response:
     pass
 
 

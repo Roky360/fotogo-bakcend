@@ -32,10 +32,8 @@ def upload_images(request: Request, album_id) -> Response:
                 app.storage.upload_file(f"{request.user_id}/{img['file_name']}", f)
             os.remove(path)
     except UserNotExistsException as e:
-        raise e
         return Response(StatusCode.BadRequest_400)
-    except Exception as e:
-        raise e
+    except:  # Exception as e:
         return Response(StatusCode.InternalServerError_500)
 
     return Response(StatusCode.OK_200)

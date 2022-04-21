@@ -15,4 +15,4 @@ class Response:
         return self._payload
 
     def __repr__(self):
-        return f"Response(status_code: {self._status_code}, payload: '{len(self._payload), ' images' if type(self._payload) is list else self._payload}')"
+        return f"Response(status_code: {self._status_code}, payload: '{(str(len(self._payload)) + ' images') if type(self._payload) is list else self._payload}')"

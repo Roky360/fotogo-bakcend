@@ -29,7 +29,8 @@ class Server:
     def connection_handler(self, client: socket.socket):
         id_token, request = receive_request(client)
         res: Response = self._framework.execute(id_token, request)
-        print(res.__repr__())
+        print(res)
+        # print(res.__repr__())
         send_response(res, client)
 
         client.shutdown(socket.SHUT_WR)

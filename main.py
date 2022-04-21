@@ -10,6 +10,8 @@ from fotogo_networking.exceptions import UserNotExistsException
 
 
 def main():
+
+
     # from db_services.data_structures import Album
     # from db_services.data_structures import DateTimeRange
     # from datetime import datetime
@@ -85,7 +87,7 @@ def main():
                                location=(0.0, 0.0),
                                permitted_users=[str]
                                ),
-            'album_id': 'str',
+            'album_ids': ['str'],
             'images_id': [str]
         },
         'payload': [

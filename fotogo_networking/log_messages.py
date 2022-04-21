@@ -16,3 +16,7 @@ def prompt_log(caller: Caller, msg):
         return print_log_message
 
     return decorator
+
+
+# TODO: implement logger
+# print(f'[{"Server":<8}] hey')

@@ -1,3 +1,4 @@
+from datetime import datetime
 import time
 
 import firebase_admin
@@ -6,6 +7,8 @@ from firebase_admin import firestore, auth
 
 from db_services.data_structures import AlbumDetails, Image, DateTimeRange
 from fotogo_networking.exceptions import *
+
+TIME_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
 
 
 class DBService:
@@ -61,7 +64,7 @@ class DBService:
         if not self.user_exists(album.owner_id):
             raise UserNotExistsException
 
-        album_id = time.time()
+        album_id = str(time.time())
         self._db.collection('albums').add({
             'owner_id': album.owner_id,
             'name': album.name,
@@ -73,29 +76,61 @@ class DBService:
             'tags': album.tags,
             'location': album.location,
             'permitted_users': album.permitted_users,
-        }, str(album_id))
-        return str(album_id)
+            'last_modified': datetime.now()
+        }, album_id)
+        return album_id
 
-    def get_album_details(self, uid, album_id=None):
+    def get_album_details(self, uid, requested_albums: dict = None):
         """
         Fetches all album data and the first image of it as a cover image.
 
         :param uid: user id.
-        :param album_id: ID of a specific album to fetch. If None, ALL the albums of the given user id are returned.
+        :param requested_albums: ID of a specific album to fetch. If None, ALL the albums of the given user id are returned.
         :return:
         """
-        if album_id is not None and not self.album_exists(album_id):
-            raise AlbumNotExistsException
+        # if requested_albums is not None and not self.album_exists(requested_albums):
+        #     raise AlbumNotExistsException
 
-        # get specific album by the given ID
-        if album_id is not None:
-            doc = self._db.collection('albums').document(album_id).get()
-            return [AlbumDetails(
+        # get specific albums by the given IDs
+        if requested_albums is None:
+            requested_albums = {}
+        album_details = []
+
+        # get all albums owned by the given user ID
+        docs = self._db.collection('albums').where('owner_id', '==', uid).get()
+
+        # look for deleted albums
+        db_album_ids = [k.id for k in docs]
+        for i in requested_albums.keys():
+            if i not in db_album_ids:
+                # AlbumDetails object with mock values. The only values that matters are album_id - to identify the
+                # album to delete, and owner_id which will be checked in frontend and if it's an empty string, it will
+                # be deleted from cache.
+                album_details.append(AlbumDetails(
+                    album_id=i,
+                    owner_id='',
+                    name='',
+                    date_range=DateTimeRange(start=datetime.now(), end=datetime.now()),
+                    last_modified=datetime.now()
+                ))
+
+        # look for outdated albums
+        for doc in docs:
+            # if exists in frontend and up-to-date, skip
+            db_timestamp = doc.get('last_modified').replace(tzinfo=None)
+            client_timestamp = requested_albums.get(doc.id)
+            if doc.id in requested_albums.keys() and db_timestamp <= datetime.strptime(
+                    client_timestamp[:len(client_timestamp) - 1], TIME_FORMAT):
+                continue
+
+            # else, append to returned album_details list
+            album_details.append(AlbumDetails(
                 owner_id=doc.get('owner_id'),
                 album_id=doc.id,
                 name=doc.get('name'),
                 date_range=DateTimeRange(start=doc.get('date_range')['from_date'],
                                          end=doc.get('date_range')['to_date']),
+                last_modified=doc.get('last_modified'),
                 is_built=doc.get('is_built'),
                 tags=doc.get('tags'),
                 location=doc.get('location'),
@@ -103,23 +138,9 @@ class DBService:
                 cover_image=
                 list(self._db.collection('images').where('containing_albums', 'array_contains', doc.id).get())[0].id
                 # id of first image in album
-            )]
+            ))
 
-        # get all albums owned by the given user ID
-        docs = self._db.collection('albums').where('owner_id', '==', uid).get()
-        return [AlbumDetails(
-            owner_id=doc.get('owner_id'),
-            album_id=doc.id,
-            name=doc.get('name'),
-            date_range=DateTimeRange(start=doc.get('date_range')['from_date'], end=doc.get('date_range')['to_date']),
-            is_built=doc.get('is_built'),
-            tags=doc.get('tags'),
-            location=doc.get('location'),
-            permitted_users=doc.get('permitted_users'),
-            cover_image=
-            list(self._db.collection('images').where('containing_albums', 'array_contains', doc.id).get())[0].id
-            # id of first image in album
-        ) for doc in docs]
+        return album_details
 
     def get_album_contents(self, album_id):
         if not self.album_exists(album_id):

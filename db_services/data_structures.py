@@ -26,9 +26,9 @@ class DateTimeRange:
 
 
 class AlbumDetails:
-    def __init__(self, owner_id: str, album_id: str, name: str, date_range: DateTimeRange, is_built: bool = False,
-                 tags: list[int] = None, location: GeoPoint = None, permitted_users: list[str] = None,
-                 cover_image: str = None):
+    def __init__(self, owner_id: str, album_id: str, name: str, date_range: DateTimeRange, last_modified: datetime,
+                 is_built: bool = False, tags: list[int] = None, location: GeoPoint = None,
+                 permitted_users: list[str] = None, cover_image: str = None):
         if permitted_users is None:
             permitted_users = []
         if tags is None:
@@ -37,6 +37,7 @@ class AlbumDetails:
         self.id = album_id
         self.name = name
         self.date_range = date_range
+        self.last_modified = last_modified
         self.is_built = is_built
         self.tags = tags
         self.location = location
