@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from google.cloud.firestore import GeoPoint
+from google.cloud.firestore_v1 import GeoPoint
 
 
 class DateTimeRange:
@@ -27,8 +27,8 @@ class DateTimeRange:
 
 class AlbumDetails:
     def __init__(self, owner_id: str, album_id: str, name: str, date_range: DateTimeRange, last_modified: datetime,
-                 is_built: bool = False, tags: list[int] = None, location: GeoPoint = None,
-                 permitted_users: list[str] = None, cover_image: str = None):
+                 is_built: bool = False, tags: list[int] = None, permitted_users: list[str] = None,
+                 cover_image: str = None):
         if permitted_users is None:
             permitted_users = []
         if tags is None:
@@ -40,7 +40,6 @@ class AlbumDetails:
         self.last_modified = last_modified
         self.is_built = is_built
         self.tags = tags
-        self.location = location
         self.permitted_users = permitted_users
         self.cover_image = cover_image
 

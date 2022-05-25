@@ -12,3 +12,4 @@ app = Framework(firebase_app)
 import fotogo_networking.endpoints.albums_endpoints
 import fotogo_networking.endpoints.users_endpoints
 import fotogo_networking.endpoints.images_endpoints
+import fotogo_networking.endpoints.admin_endpoints

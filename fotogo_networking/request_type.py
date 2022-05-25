@@ -9,12 +9,12 @@ class RequestType(IntEnum):
     DeleteAccount = 3,
     # Albums
     CreateAlbum = 4,
-    GetAlbumDetails = 5,
+    SyncAlbumDetails = 5,
     GetAlbumContents = 6,
     UpdateAlbum = 7,
     AddToAlbum = 8,
     RemoveFromAlbum = 9,
     DeleteAlbum = 10,
-    # Photos
-    UploadImage = 11,
-    DeleteImage = 12,
+    # Admin
+    GenerateStatistics = 11,
+    GetUsers = 12
