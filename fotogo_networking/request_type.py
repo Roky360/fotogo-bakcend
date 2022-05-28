@@ -2,6 +2,9 @@ from enum import IntEnum
 
 
 class RequestType(IntEnum):
+    """
+    All the types of requests that the server can handle.
+    """
     # Users
     UserAuth = 0,
     CheckUserExists = 1,

@@ -8,6 +8,13 @@ from ..status_code import StatusCode
 
 @app.endpoint(endpoint_id=RequestType.UserAuth)
 def user_auth(id_token: str, request: Request) -> Request | Response:
+    """
+    Authenticates a user by validating its id_token.
+
+    :param id_token: Id token to validate.
+    :param request: Request object.
+    :return: Response, if the auth failed; Request object if succeeded.
+    """
     try:
         request.user_id = app.db.authenticate_user(id_token)
         return request
@@ -38,6 +45,12 @@ def check_user_exists(request: Request) -> Response:
 
 @app.endpoint(endpoint_id=RequestType.CreateAccount)
 def create_account(request: Request) -> Response:
+    """
+    Handles CreateAccount request.
+
+    :param request: Request object.
+    :return: Response
+    """
     try:
         app.db.add_user(request.user_id)
     except:
@@ -48,10 +61,16 @@ def create_account(request: Request) -> Response:
 
 @app.endpoint(endpoint_id=RequestType.DeleteAccount)
 def delete_account(request: Request) -> Response:
+    """
+    Handles DeleteAccount request.
+
+    :param request: Request object.
+    :return: Response
+    """
     try:
         app.db.delete_user_data(request.user_id)
         app.storage.delete_directory(request.user_id)
+
+        return Response(StatusCode.OK_200)
     except:
         return Response(StatusCode.InternalServerError_500)
-
-    return Response(StatusCode.OK_200)

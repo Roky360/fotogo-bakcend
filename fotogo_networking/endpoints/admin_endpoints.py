@@ -7,6 +7,12 @@ from ..status_code import StatusCode
 
 @app.endpoint(endpoint_id=RequestType.GenerateStatistics)
 def generate_statistics(request: Request) -> Response:
+    """
+    Generates statistics for an admin user.
+
+    :param request: Request object.
+    :return: Response
+    """
     try:
         res = app.db.generate_statistics(request.user_id)
         return Response(StatusCode.OK_200,
@@ -17,6 +23,12 @@ def generate_statistics(request: Request) -> Response:
 
 @app.endpoint(endpoint_id=RequestType.GetUsers)
 def get_users(request: Request) -> Response:
+    """
+    Get information about all the users in the system.
+
+    :param request: Request object.
+    :return: Response
+    """
     try:
         res = app.db.get_users_data(request.user_id)
         return Response(StatusCode.OK_200,

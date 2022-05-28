@@ -1,4 +1,9 @@
 class DBStatistics:
+    """
+    Holds statistics about the system.
+
+    * Right now contains how many users, albums and images are stored in the DB.
+    """
     def __init__(self, users_count: int, albums_count: int, images_count: int,):
         self.users_count = users_count
         self.albums_count = albums_count
@@ -10,6 +15,11 @@ class DBStatistics:
 
 
 class UserData:
+    """
+    Holds a user's data.
+
+    Contains user's full name, email and a URL to its profile photo.
+    """
     def __init__(self, display_name: str, email: str, photo_url: str):
         self.display_name = display_name
         self.email = email

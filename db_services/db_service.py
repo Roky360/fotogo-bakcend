@@ -1,5 +1,6 @@
 from datetime import datetime
 import time
+from typing import Type
 
 import firebase_admin
 import google.cloud.firestore_v1.client
@@ -9,21 +10,38 @@ from firebase_admin.auth import UserRecord
 from db_services.data_structures import AlbumDetails, Image, DateTimeRange
 from fotogo_networking.admin_data_structures import DBStatistics, UserData
 from fotogo_networking.exceptions import *
+from fotogo_networking.exceptions import UserNotExistsException, AlbumNotExistsException, ImageNotExistsException
 
 TIME_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
 
 
 class DBService:
+    """A service that manages operations with Firebase Cloud Firestore database."""
     _USERS_COLLECTION = 'users'
     _ALBUMS_COLLECTION = 'albums'
     _IMAGES_COLLECTION = 'images'
 
     def __init__(self, app):
+        """
+        Initializes DBService with a Firebase app.
+
+        :param app: Firebase app.
+        """
         self._db: google.cloud.firestore_v1.client.Client = firestore.client(app)
         self._client = auth.Client(app)
 
     @staticmethod
     def delete_documents(coll_ref, batch_size=10):
+        """
+        Deletes all the documents in coll_ref.
+
+        Used to delete mass documents (like collections with hundreds of documents) in a memory-effective way.
+        Deletes batch_size documents each iteration recursively, in order to not fill-up the memory.
+
+        :param coll_ref: Reference to the collection to delete.
+        :param batch_size: How many documents to delete in each iteration. Default to 10.
+        :return:
+        """
         docs = coll_ref.limit(batch_size).stream()
         deleted = 0
 
@@ -35,6 +53,12 @@ class DBService:
             return DBService.delete_documents(coll_ref, batch_size)
 
     def get_user_record(self, uid: str) -> UserRecord:
+        """
+        Returns a UserRecord from user id.
+
+        :param uid: User id.
+        :return: UserRecord
+        """
         return self._client.get_user(uid)
 
     """ USERS """
@@ -44,6 +68,7 @@ class DBService:
         Authenticate user by its id token.
         This is a must security step before executing the client's request, to verify the client's identity.
         If the token is not valid, expired or has invalid signature, a 401 response is returned.
+
         :param id_token: The token to verify.
         :return: User id.
         """
@@ -82,12 +107,25 @@ class DBService:
         """
         user = self.get_user_record(uid)
         self._db.collection(DBService._USERS_COLLECTION).document(uid).set(
-            dict(email=user.email, name=user.display_name, priv_level=1))
+            dict(email=user.email, name=user.display_name, privilege_level=1))
 
     def user_exists(self, uid) -> bool:
+        """
+        Returns if aa uid (user id) exists in the Users collection.
+
+        :param uid: User id
+        :return: bool
+        """
         return self._db.collection(DBService._USERS_COLLECTION).document(uid).get().exists
 
-    def delete_user_data(self, uid):
+    def delete_user_data(self, uid) -> None:
+        """
+        Deletes all the data related to a user in the database.
+
+        Deletes all images and albums owned by the user, as well as its document in the users collection.
+
+        :param uid: User id to delete.
+        """
         # delete images' documents
         DBService.delete_documents(self._db.collection(DBService._IMAGES_COLLECTION).where('owner_id', '==', uid))
 
@@ -99,7 +137,15 @@ class DBService:
 
     """ ALBUMS """
 
-    def create_album(self, album: AlbumDetails):
+    def create_album(self, album: AlbumDetails) -> str:
+        """
+        Creates a new album in the database.
+
+        The owner_id must exist in the Users collection.
+
+        :param album: AlbumDetails object.
+        :return: The album's id, as stored in the database.
+        """
         if not self.user_exists(album.owner_id):
             raise UserNotExistsException
 
@@ -118,19 +164,18 @@ class DBService:
         }, album_id)
         return album_id
 
-    def get_album_details(self, uid, requested_albums: dict = None):
+    def sync_album_details(self, uid, requested_albums: dict = None) -> list[AlbumDetails]:
         """
-        Fetches all album data and the first image of it as a cover image.
+        Syncs client's albums with the albums stored in DB, for one user.
+
+        For each outdated album, fetches all album data and the first image of it as a cover image. For deleted albums,
+        returns AlbumDetails object with empty owner_id, as a sign that the album needs to be deleted in client side.
 
         :param uid: user id.
-        :param requested_albums: ID of a specific album to fetch. If None, ALL the albums of the given user id are
-        returned.
+        :param requested_albums: A dictionary containing all the albums' IDs as keys and their last-modified field as
+        value.
         :return:
         """
-        # if requested_albums is not None and not self.album_exists(requested_albums):
-        #     raise AlbumNotExistsException
-
-        # get specific albums by the given IDs
         if requested_albums is None:
             requested_albums = {}
         album_details = []
@@ -181,7 +226,13 @@ class DBService:
 
         return album_details
 
-    def get_album_contents(self, album_id):
+    def get_album_contents(self, album_id) -> list[Image]:
+        """
+        Returns a list of all the images on an album.
+
+        :param album_id: Album id.
+        :return: List of Image object, representing all the images on the album.
+        """
         if not self.album_exists(album_id):
             raise AlbumNotExistsException
 
@@ -202,6 +253,13 @@ class DBService:
         return images
 
     def update_album(self, album_id: str, album: AlbumDetails):
+        """
+        Updates album details, like its title.
+
+        :param album_id: Album id
+        :param album: AlbumDetails object with updated data.
+        :return: False if the user does not exist, else None.
+        """
         if not self.user_exists(album.owner_id):
             return False
             # raise Exception('Trying to update album to a user that does not exists!')
@@ -212,22 +270,22 @@ class DBService:
             last_modified=album.last_modified
         ))
 
-    # TODO: necessary?
-    def add_images_to_album(self, album_id: str, images_to_add: list[Image]):
-        pass
-
-    # TODO: necessary?
-    def remove_images_from_album(self):
-        pass
-
     def album_exists(self, album_id):
+        """
+        Returns if an album_id exists in the Albums collection.
+
+        :param album_id: Album id
+        :return: bool
+        """
         return self._db.collection(DBService._ALBUMS_COLLECTION).document(album_id).get().exists
 
     def delete_album(self, uid, album_id) -> list[str]:
         """
-        Deletes an album.\n
+        Deletes an album.
+
         Performs a check that the album exists and that the request comes from the owner of that album.
-        Raises AlbumNotExistsException or PermissionDeniedException.\n
+        Raises AlbumNotExistsException or PermissionDeniedException.
+
         Deletes the album's document, unlinks the album from all its images and return the ones that remain with no
         containing albums.
 
@@ -255,7 +313,14 @@ class DBService:
 
     """ IMAGES """
 
-    def add_image(self, image: Image):
+    def add_image(self, image: Image) -> None:
+        """
+        Adds an image to the database.
+
+        Creates a document in the Images collection.
+
+        :param image: Image object to add
+        """
         if not self.user_exists(image.owner_id):
             raise UserNotExistsException
 
@@ -269,7 +334,21 @@ class DBService:
             'containing_albums': image.containing_albums
         })
 
-    def link_image_to_album(self, uid, image_id, album_id):
+    def link_image_to_album(self, uid, image_id, album_id) -> Type[UserNotExistsException | AlbumNotExistsException |
+                                                                   ImageNotExistsException]:
+        """
+        Links an image to an album.
+
+        Adds the album's id to the containing_albums field of the image.
+
+        The user, album and the image must exist in the database.
+
+        :param uid: The id of the user making the request.
+        :param image_id:
+        :param album_id:
+        :return: UserNotExistsException if the user does not exist, AlbumNotExistsException if the album does not exist,
+        ImageNotExistsException if the image does not exist. If everything is OK, returns None.
+        """
         if not self.user_exists(uid):
             return UserNotExistsException
         if not self.album_exists(album_id):
@@ -290,7 +369,7 @@ class DBService:
         If delete_if_unlinked is true and containing_albums is empty after the removal, the image's document is deleted,
         and True is returned; else returns False.
 
-        :param uid: User id.
+        :param uid: The id of the user making the request.
         :param image_id: The image's id to delete.
         :param album_id: The album to unlink from.
         :param delete_if_unlinked: Whether to delete the image's document if containing_albums is empty after the
@@ -316,15 +395,14 @@ class DBService:
             return True
         return False
 
-    def update_image_tag(self, uid, image_id, tag: int):
+    def update_image_tag(self, uid, image_id, tag: int) -> None:
         """
         Updates the "tag" field of an image.\n
-        Checks if the user and the image exists, and if the user has permission to that iamge.
+        Checks if the user and the image exists, and if the user has permission to that image.
 
-        :param uid:
-        :param image_id:
-        :param tag:
-        :return:
+        :param uid: The id of the user making the request.
+        :param image_id: The id of the image.
+        :param tag: New tag id.
         """
         if not self.user_exists(uid):
             raise Exception('User does not exists!')
@@ -342,7 +420,7 @@ class DBService:
         """
         return self._db.collection(DBService._IMAGES_COLLECTION).document(image_id).get().exists
 
-    def delete_image(self, uid: str, image_id: str):
+    def delete_image(self, uid: str, image_id: str) -> None:
         """
         Deletes a document represents an image from the database.
         Checks if the user has permission to edit the image (by checking if the user has acc)
@@ -351,18 +429,24 @@ class DBService:
         :param image_id: The desired image id to delete
         :return:
         """
-        # TODO: check if the image is in an album which the user has access to (make a function to check for that permission)
         if not self.user_exists(uid):
             raise Exception('Trying to delete image to a user that does not exists!')
         if not self.image_exists(image_id):
             return
-            raise Exception('Image does not exists!')
 
         self._db.collection(DBService._IMAGES_COLLECTION).document(image_id).delete()
 
     """ ADMIN """
 
     def generate_statistics(self, uid: str) -> DBStatistics:
+        """
+        Generates statistics of the system, and packs them in DBStatistics object.
+
+        The uid must be at admin privilege level.
+
+        :param uid: The id of the user making the request.
+        :return: DBStatistics object.
+        """
         if self.get_privilege_level(uid) != 0:
             raise PermissionDeniedException("User does not have admin permission.")
 
@@ -373,6 +457,14 @@ class DBService:
         return DBStatistics(users_count, albums_count, images_count)
 
     def get_users_data(self, uid: str) -> list[UserData]:
+        """
+        Returns the user data of all the non-admin users registered.
+
+        :raises PermissionDeniedException: If uid does not have admin permission.
+
+        :param uid: User id.
+        :return: list of UserData objects
+        """
         if self.get_privilege_level(uid) != 0:
             raise PermissionDeniedException("User does not have admin permission.")
 
@@ -383,4 +475,5 @@ class DBService:
 
         return [
             UserData(display_name=user.display_name, email=user.email, photo_url=user.photo_url)
-            for user in user_records]
+            for user in user_records
+            if self._db.collection(DBService._USERS_COLLECTION).document(user.uid).get('privilege_level') != 0]

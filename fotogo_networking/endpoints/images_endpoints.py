@@ -6,7 +6,15 @@ from ..endpoints import app
 from ..request import Request
 
 
-def upload_images(request: Request, album_id):
+def upload_images(request: Request, album_id) -> None:
+    """
+    Uploads images to the database.
+
+    Both creates a document in the Images collection and uploads the actual file to the storage, for each image.
+
+    :param request: Request object.
+    :param album_id: Album's id to link the images to.
+    """
     for img in request.payload:
         curr_image_id = img['file_name']
 
@@ -33,7 +41,16 @@ def upload_images(request: Request, album_id):
         os.remove(path)
 
 
-def delete_images(uid: str, image_ids: list):
+def delete_images(uid: str, image_ids: list) -> None:
+    """
+    Deletes images from the database.
+
+    Both deletes the document in the Images collection and the actual file to the storage, for each image.
+
+    :param uid: User id.
+    :param image_ids: list of image IDs to delete.
+    :return: None
+    """
     for img in image_ids:
         app.db.delete_image(uid, img)
         app.storage.delete_file(f"{uid}/{img}")

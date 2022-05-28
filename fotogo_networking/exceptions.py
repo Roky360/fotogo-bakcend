@@ -1,4 +1,5 @@
 class UserNotAuthenticatedException(Exception):
+    """An exception that indicates that a user's id token is invalid."""
     def __init__(self, message=None):
         self._message = message
 
@@ -8,6 +9,7 @@ class UserNotAuthenticatedException(Exception):
 
 
 class UserNotExistsException(Exception):
+    """An exception that indicates that a user does not exist."""
     def __init__(self, message=None):
         self._message = message
 
@@ -17,6 +19,7 @@ class UserNotExistsException(Exception):
 
 
 class AlbumNotExistsException(Exception):
+    """An exception that indicates that an album does not exist."""
     def __init__(self, message=None):
         self._message = message
 
@@ -26,6 +29,7 @@ class AlbumNotExistsException(Exception):
 
 
 class ImageNotExistsException(Exception):
+    """An exception that indicates that an image does not exist."""
     def __init__(self, message=None):
         self._message = message
 
@@ -35,6 +39,7 @@ class ImageNotExistsException(Exception):
 
 
 class PermissionDeniedException(Exception):
+    """An exception that indicates that a client does not have the right permission to access a resource."""
     def __init__(self, message=None):
         self._message = message
 

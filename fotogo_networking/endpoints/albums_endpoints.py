@@ -13,6 +13,12 @@ from ..status_code import StatusCode
 
 @app.endpoint(endpoint_id=RequestType.CreateAlbum)
 def create_album(request: Request) -> Response:
+    """
+    Handles CreateAlbum request.
+
+    :param request: Request object.
+    :return: Response
+    """
     try:
         album_data = request.args['album_data']
         # create album
@@ -32,15 +38,20 @@ def create_album(request: Request) -> Response:
         return Response(StatusCode.Created_201, str(album_id))
     except UserNotExistsException:
         return Response(StatusCode.NotFound_404)
-    except Exception as e:
-        raise e
+    except:
         return Response(StatusCode.InternalServerError_500)
 
 
 @app.endpoint(endpoint_id=RequestType.SyncAlbumDetails)
-def get_album_details(request: Request) -> Response:
+def sync_album_details(request: Request) -> Response:
+    """
+    Handles SyncAlbumDetails request.
+
+    :param request: Request object.
+    :return: Response
+    """
     try:
-        res = app.db.get_album_details(
+        res = app.db.sync_album_details(
             request.user_id,
             request.args['requested_albums'] if 'requested_albums' in request.args else None
         )
@@ -66,6 +77,12 @@ def get_album_details(request: Request) -> Response:
 
 @app.endpoint(endpoint_id=RequestType.GetAlbumContents)
 def get_album_contents(request: Request) -> Response:
+    """
+    Handles GetAlbumContents request.
+
+    :param request: Request object.
+    :return: Response
+    """
     try:
         res = app.db.get_album_contents(request.args['album_id'])
         images = [
@@ -87,6 +104,12 @@ def get_album_contents(request: Request) -> Response:
 
 @app.endpoint(endpoint_id=RequestType.UpdateAlbum)
 def update_album(request: Request) -> Response:
+    """
+    Handles UpdateAlbum request.
+
+    :param request: Request object.
+    :return: Response
+    """
     try:
         res = app.db.update_album(request.args['album_id'], request.args['album_data'])
     except:
@@ -100,6 +123,12 @@ def update_album(request: Request) -> Response:
 
 @app.endpoint(endpoint_id=RequestType.AddToAlbum)
 def add_to_album(request: Request) -> Response:
+    """
+    Handles AddToAlbum request.
+
+    :param request: Request object.
+    :return: Response
+    """
     try:
         upload_images(request, request.args['album_data']['album_id'])
         return Response(StatusCode.OK_200)
@@ -109,6 +138,12 @@ def add_to_album(request: Request) -> Response:
 
 @app.endpoint(endpoint_id=RequestType.RemoveFromAlbum)
 def remove_from_album(request: Request) -> Response:
+    """
+    Handles RemoveFromAlbum request.
+
+    :param request: Request object.
+    :return: Response
+    """
     try:
         images_to_delete = []
 
@@ -126,15 +161,20 @@ def remove_from_album(request: Request) -> Response:
 
 @app.endpoint(endpoint_id=RequestType.DeleteAlbum)
 def delete_album(request: Request) -> Response:
+    """
+    Handles DeleteAlbum request.
+
+    :param request: Request object.
+    :return: Response
+    """
     try:
         img_ids_to_unlink = app.db.delete_album(request.user_id, request.args['album_id'])
         delete_images(request.user_id, img_ids_to_unlink)
 
         return Response(StatusCode.OK_200)
-    except AlbumNotExistsException as e:
+    except AlbumNotExistsException:
         return Response(StatusCode.NotFound_404)
-    except PermissionDeniedException as e:
+    except PermissionDeniedException:
         return Response(StatusCode.Forbidden_403)
-    except Exception as e:
-        raise e
+    except:
         return Response(StatusCode.InternalServerError_500)

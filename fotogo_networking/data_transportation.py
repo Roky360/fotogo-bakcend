@@ -1,5 +1,4 @@
 import json
-import socket
 from ssl import SSLSocket
 
 from fotogo_networking.request import Request
@@ -23,11 +22,6 @@ def send_response(response: Response, sender: SSLSocket) -> None:
         payload=response.payload
     )
     jsoned_response = json.dumps(response_dict)
-    # response_length = len(jsoned_response)
-    # if response_length > MAX_PAYLOAD_LENGTH:
-    #     raise OverflowError("Response length too big!")
-    #
-    # data = jsoned_response.encode()
 
     sender.send(jsoned_response.encode())
 
