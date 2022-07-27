@@ -65,8 +65,9 @@ def sync_album_details(request: Request) -> Response:
                 is_built=i.is_built,
                 tags=i.tags,
                 permitted_users=i.permitted_users,
-                cover_image=base64.b64encode(app.storage.get_file_bytes(f"{i.owner_id}/{i.cover_image}")).decode(
-                    'ascii') if i.owner_id != '' else ''
+                cover_image=app.storage.get_file_url(f"{i.owner_id}/{i.cover_image}") if i.owner_id != '' else '',
+                # cover_image=base64.b64encode(app.storage.get_file_bytes(f"{i.owner_id}/{i.cover_image}")).decode(
+                #     'ascii') if i.owner_id != '' else ''
             ) for i in res
         ]
         return Response(StatusCode.OK_200, album_list)
@@ -92,6 +93,7 @@ def get_album_contents(request: Request) -> Response:
                 location=(i.location.longitude, i.location.latitude) if i.location is not None else None,
                 tag=i.tag,
                 containing_albums=i.containing_albums,
+                # data=app.storage.get_file_url(f"{i.owner_id}/{i.file_name}")
                 data=base64.b64encode(app.storage.get_file_bytes(f"{i.owner_id}/{i.file_name}")).decode('ascii')
             ) for i in res
         ]
@@ -111,16 +113,29 @@ def update_album(request: Request) -> Response:
     :return: Response
     """
     try:
-        res = app.db.update_album(request.args['album_id'], request.args['album_data'])
+        album_data = request.args['album_data']
+        res = app.db.update_album(
+            AlbumDetails(
+                album_id=album_data['id'],
+                owner_id=request.user_id,
+                name=album_data['name'],
+                date_range=DateTimeRange(
+                    start=datetime.strptime(album_data['date_range'][0], '%Y-%m-%d'),
+                    end=datetime.strptime(album_data['date_range'][1], '%Y-%m-%d')),
+                last_modified=datetime.strptime(album_data['last_modified'], '%Y-%m-%d %H:%M:%S.%f'),
+                is_built=True,
+                permitted_users=album_data['permitted_users']
+            )
+        )
+        if not res:
+            return Response(StatusCode.NotFound_404)
+
+        return Response(StatusCode.OK_200)
     except:
         return Response(StatusCode.InternalServerError_500)
 
-    if not res:
-        return Response(StatusCode.NotFound_404)
 
-    return Response(StatusCode.OK_200)
-
-
+@app.endpoint(endpoint_id=RequestType.ExtAddImagesToAlbum)
 @app.endpoint(endpoint_id=RequestType.AddToAlbum)
 def add_to_album(request: Request) -> Response:
     """
@@ -130,7 +145,9 @@ def add_to_album(request: Request) -> Response:
     :return: Response
     """
     try:
-        upload_images(request, request.args['album_data']['album_id'])
+        upload_images(request, request.args['album_id'])
+        app.db.update_last_modified(datetime.strptime(request.args['last_modified'], '%Y-%m-%d %H:%M:%S.%f'),
+                                    request.args['album_id'])
         return Response(StatusCode.OK_200)
     except:
         return Response(StatusCode.InternalServerError_500)
@@ -154,11 +171,15 @@ def remove_from_album(request: Request) -> Response:
 
         delete_images(request.user_id, images_to_delete)
 
+        app.db.update_last_modified(datetime.strptime(request.args['last_modified'], '%Y-%m-%d %H:%M:%S.%f'),
+                                    request.args['album_id'])
+
         return Response(StatusCode.OK_200)
     except:
         return Response(StatusCode.InternalServerError_500)
 
 
+@app.endpoint(endpoint_id=RequestType.ExtDeleteAlbum)
 @app.endpoint(endpoint_id=RequestType.DeleteAlbum)
 def delete_album(request: Request) -> Response:
     """

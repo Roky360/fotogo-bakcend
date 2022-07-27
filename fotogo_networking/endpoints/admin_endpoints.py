@@ -32,6 +32,7 @@ def get_users(request: Request) -> Response:
     try:
         res = app.db.get_users_data(request.user_id)
         return Response(StatusCode.OK_200,
-                        [dict(name=i.display_name, email=i.email, photo_url=i.photo_url) for i in res])
-    except:
-        return Response(StatusCode.InternalServerError_500)
+                        [dict(id=i.uid, name=i.display_name, email=i.email, photo_url=i.photo_url,
+                              priv=i.privilege_level) for i in res])
+    except Exception as e:
+        return Response(StatusCode.InternalServerError_500, str(e))

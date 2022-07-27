@@ -1,4 +1,5 @@
 import json
+import ssl
 from ssl import SSLSocket
 
 from fotogo_networking.request import Request
@@ -9,13 +10,13 @@ MAX_PAYLOAD_LENGTH = int.from_bytes(b'\xff\xff\xff\xff', "big")  # 4294967295 | 
 MAX_PACKET_READ_LENGTH = 16384
 
 
-def send_response(response: Response, sender: SSLSocket) -> None:
+def send_response(response: Response, sender: SSLSocket) -> bool:
     """
     Accepts Response() object, parses it into bytes and sends it over the sender socket.
 
     :param response: Response object to send back to the client.
     :param sender: Sender socket (client socket).
-    :return: None
+    :return: If the data was sent successfully.
     """
     response_dict = dict(
         status_code=response.status_code,
@@ -23,7 +24,11 @@ def send_response(response: Response, sender: SSLSocket) -> None:
     )
     jsoned_response = json.dumps(response_dict)
 
-    sender.send(jsoned_response.encode())
+    try:
+        sender.send(jsoned_response.encode())
+        return True
+    except ssl.SSLEOFError:
+        return False
 
 
 def receive_request(sender: SSLSocket) -> tuple[str, Request] | tuple[bool, Response]:

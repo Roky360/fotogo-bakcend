@@ -10,7 +10,7 @@ class Logger:
     It is possible to create multiple loggers, each one with a unique name.
     """
 
-    def __init__(self, name: str = None, filename: str = ''):
+    def __init__(self, name: str = None, filename: str = '', level=logging.INFO):
         """
         Creates a logger with provided name and .log file path.
 
@@ -29,16 +29,16 @@ class Logger:
             self._handler.setFormatter(self._formatter)
 
             self._logger.addHandler(self._handler)
-            self._logger.setLevel(logging.DEBUG)
+            self._logger.setLevel(level)
 
     @staticmethod
     def __get_time_formatted() -> str:
         """Returns the current time, formatted with the date and hour, accurate by milliseconds."""
         return datetime.now().strftime('%d/%m/%y %H:%M:%S.%f')
 
-    def __message_format(self, message: str) -> str:
+    def __message_format(self, message: str, level: str) -> str:
         """The message format for all levels."""
-        return f"[{Logger.__get_time_formatted()}] {self._logger.name} | Info: {message}"
+        return f"[{Logger.__get_time_formatted()}] {self._logger.name} | {level}: {message}"
 
     def debug(self, message):
         """
@@ -47,7 +47,7 @@ class Logger:
         :param message: The message to log.
         """
         self._logger.debug(message)
-        print(Fore.WHITE + self.__message_format(message) + Fore.RESET)
+        print(Fore.WHITE + self.__message_format(message, "Debug") + Fore.RESET)
 
     def info(self, message, color=Fore.GREEN):
         """
@@ -57,7 +57,7 @@ class Logger:
         :param message: The message to log.
         """
         self._logger.info(message)
-        print(color + self.__message_format(message) + Fore.RESET)
+        print(color + self.__message_format(message, "Info") + Fore.RESET)
 
     def error(self, message):
         """
@@ -66,7 +66,7 @@ class Logger:
         :param message: The message to log.
         """
         self._logger.error(message)
-        print(Fore.RED + self.__message_format(message) + Fore.RESET)
+        print(Fore.RED + self.__message_format(message, "Error") + Fore.RESET)
 
     def critical(self, message):
         """
@@ -75,7 +75,7 @@ class Logger:
         :param message: The message to log.
         """
         self._logger.critical(message)
-        print(Fore.LIGHTWHITE_EX + Back.RED + self.__message_format(message) + Fore.RESET + Back.RESET)
+        print(Fore.LIGHTWHITE_EX + Back.RED + self.__message_format(message, "CRITICAL") + Fore.RESET + Back.RESET)
 
     def exception(self, message):
         """

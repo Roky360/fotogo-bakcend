@@ -20,4 +20,9 @@ class RequestType(IntEnum):
     DeleteAlbum = 10,
     # Admin
     GenerateStatistics = 11,
-    GetUsers = 12
+    GetUsers = 12,
+    AdminDeleteUser = 13,
+
+    # External
+    ExtAddImagesToAlbum = 14,
+    ExtDeleteAlbum = 15,

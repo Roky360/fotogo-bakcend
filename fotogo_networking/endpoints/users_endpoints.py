@@ -59,17 +59,25 @@ def create_account(request: Request) -> Response:
     return Response(StatusCode.OK_200)
 
 
+@app.endpoint(endpoint_id=RequestType.AdminDeleteUser)
 @app.endpoint(endpoint_id=RequestType.DeleteAccount)
 def delete_account(request: Request) -> Response:
     """
     Handles DeleteAccount request.
 
+    Also handles a AdminDeleteUser by checking the client's privilege level.
+
     :param request: Request object.
     :return: Response
     """
     try:
-        app.db.delete_user_data(request.user_id)
-        app.storage.delete_directory(request.user_id)
+        if app.db.get_privilege_level(request.user_id) == 0:
+            uid = request.args['uid']
+        else:
+            uid = request.user_id
+
+        app.db.delete_user_data(uid)
+        app.storage.delete_directory(uid)
 
         return Response(StatusCode.OK_200)
     except:

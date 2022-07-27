@@ -1,3 +1,4 @@
+import random
 from datetime import datetime
 import time
 from typing import Type
@@ -137,6 +138,9 @@ class DBService:
 
     """ ALBUMS """
 
+    def update_last_modified(self, last_modified: datetime, album_id: str):
+        self._db.collection(DBService._ALBUMS_COLLECTION).document(album_id).update(dict(last_modified=last_modified))
+
     def create_album(self, album: AlbumDetails) -> str:
         """
         Creates a new album in the database.
@@ -150,6 +154,8 @@ class DBService:
             raise UserNotExistsException
 
         album_id = str(time.time())
+        while self.album_exists(album_id):
+            album_id += str(random.randint(0, 10))
         self._db.collection(DBService._ALBUMS_COLLECTION).add({
             'owner_id': album.owner_id,
             'name': album.name,
@@ -208,6 +214,9 @@ class DBService:
                 continue
 
             # else, append to returned album_details list
+            album_images = list(
+                self._db.collection(DBService._IMAGES_COLLECTION).where('containing_albums', 'array_contains',
+                                                                        doc.id).get())
             album_details.append(AlbumDetails(
                 owner_id=doc.get('owner_id'),
                 album_id=doc.id,
@@ -218,9 +227,7 @@ class DBService:
                 is_built=doc.get('is_built'),
                 tags=doc.get('tags'),
                 permitted_users=doc.get('permitted_users'),
-                cover_image=
-                list(self._db.collection(DBService._IMAGES_COLLECTION).where('containing_albums', 'array_contains',
-                                                                             doc.id).get())[0].id
+                cover_image=album_images[0].id if len(album_images) > 0 else None
                 # id of first image in album
             ))
 
@@ -252,11 +259,10 @@ class DBService:
 
         return images
 
-    def update_album(self, album_id: str, album: AlbumDetails):
+    def update_album(self, album: AlbumDetails):
         """
         Updates album details, like its title.
 
-        :param album_id: Album id
         :param album: AlbumDetails object with updated data.
         :return: False if the user does not exist, else None.
         """
@@ -264,11 +270,13 @@ class DBService:
             return False
             # raise Exception('Trying to update album to a user that does not exists!')
 
-        self._db.collection(DBService._ALBUMS_COLLECTION).document(album_id).update(dict(
+        self._db.collection(DBService._ALBUMS_COLLECTION).document(album.id).update(dict(
             name=album.name,
-            date_range=album.date_range,
+            date_range=dict(from_date=album.date_range.start, to_date=album.date_range.end),
             last_modified=album.last_modified
         ))
+
+        return True
 
     def album_exists(self, album_id):
         """
@@ -429,6 +437,8 @@ class DBService:
         :param image_id: The desired image id to delete
         :return:
         """
+        # TODO: check if the image is in an album which the user has access to (make a function to check for that
+        #  permission)
         if not self.user_exists(uid):
             raise Exception('Trying to delete image to a user that does not exists!')
         if not self.image_exists(image_id):
@@ -451,6 +461,11 @@ class DBService:
             raise PermissionDeniedException("User does not have admin permission.")
 
         users_count = len(self._db.collection(DBService._USERS_COLLECTION).get())
+        # count the non-admin users
+        # users_count = 0
+        # for user in self._db.collection(DBService._USERS_COLLECTION).get():
+        #     if user.get('privilege_level') != 0:
+        #         users_count += 1
         albums_count = len(self._db.collection(DBService._ALBUMS_COLLECTION).get())
         images_count = len(self._db.collection(DBService._IMAGES_COLLECTION).get())
 
@@ -474,6 +489,8 @@ class DBService:
             for user in users_docs]
 
         return [
-            UserData(display_name=user.display_name, email=user.email, photo_url=user.photo_url)
+            UserData(uid=user.uid, display_name=user.display_name, email=user.email, photo_url=user.photo_url,
+                     privilege_level=self._db.collection(DBService._USERS_COLLECTION).document(user.uid).get().get(
+                         'privilege_level'))
             for user in user_records
-            if self._db.collection(DBService._USERS_COLLECTION).document(user.uid).get('privilege_level') != 0]
+        ]

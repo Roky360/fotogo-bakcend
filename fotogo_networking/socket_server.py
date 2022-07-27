@@ -42,9 +42,22 @@ class SocketServer:
     def __client_acceptor(self):
         """Accepting clients and passing them to connection_handler, while active."""
         while self._active:
-            client, address = self._socket.accept()
-            self._framework.logger.info("Client accepted")
-            threading.Thread(target=self.__connection_handler, args=[client]).start()
+            try:
+                client, address = self._socket.accept()
+                self._framework.logger.info("Client accepted")
+                threading.Thread(target=self.__connection_handler, args=[client]).start()
+            except ssl.SSLEOFError as e:
+                self._framework.logger.error(str(e))
+                continue
+            except ssl.SSLError as e:
+                self._framework.logger.error(str(e))
+                continue
+            except ConnectionError as e:
+                self._framework.logger.error(str(e))
+                continue
+            except Exception as e:
+                self._framework.logger.error(str(e))
+                continue
 
     def __connection_handler(self, client: SSLSocket):
         """
@@ -54,16 +67,26 @@ class SocketServer:
 
         :param client: Client's socket.
         """
-        id_token, request = receive_request(client)
-        if not id_token:
-            send_response(request, client)
+        try:
+            id_token, request = receive_request(client)
+            if not id_token:
+                send_response(request, client)
+                self._framework.logger.info(request)
+                client.shutdown(socket.SHUT_WR)
+                return
+            res: Response = self._framework.execute(id_token, request)
+
+            if not send_response(res, client):
+                self._framework.logger.error(
+                    f"Connection closed unexpectedly with client: {client.getsockname()}")
+            else:
+                self._framework.logger.info(res)
+
+            client.shutdown(socket.SHUT_WR)
+        except Exception as e:
+            self._framework.logger.error(str(e))
+            client.shutdown(socket.SHUT_WR)
             return
-        res: Response = self._framework.execute(id_token, request)
-
-        send_response(res, client)
-        self._framework.logger.info(res)
-
-        client.shutdown(socket.SHUT_WR)
 
     def stop(self):
         """

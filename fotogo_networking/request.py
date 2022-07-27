@@ -5,6 +5,7 @@ class Request:
     """Represents a request that comes from a client."""
 
     def __init__(self, request_type: RequestType, args: dict, payload: list, user_id: str = ''):
+        assert(request_type in RequestType._value2member_map_, "Request type index does not exists")
         self._type = RequestType._value2member_map_[request_type]
         self._uid = user_id
         self._args = args

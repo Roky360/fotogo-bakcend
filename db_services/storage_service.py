@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from firebase_admin import storage
 
@@ -32,8 +32,7 @@ class StorageService:
         :return: URL: str
         """
         return self._bucket.blob(blob_path).generate_signed_url(
-            datetime.now().replace(minute=datetime.now().minute + 0,
-                                   hour=datetime.now().hour - 2))  # one HOUR expiration time (in Israel time zone UTC+3)
+            datetime.now() + timedelta(hours=1))  # one HOUR expiration time (in Israel time zone UTC+3)
 
     def download_file(self, blob_path: str, file_name: str):
         """
