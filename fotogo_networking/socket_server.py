@@ -10,7 +10,7 @@ class SocketServer:
     """A secure, multi-threaded socket server."""
 
     def __init__(self, framework):
-        self._address = ('0.0.0.0', 30200)
+        self._address = ('0.0.0.0', 80)
         self._socket: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # self._socket: SSLSocket = ssl.wrap_socket(self._socket,
         #                                           certfile=r'fullchain.pem',
