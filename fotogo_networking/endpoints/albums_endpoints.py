@@ -100,7 +100,7 @@ def get_album_contents(request: Request) -> Response:
         return Response(StatusCode.OK_200, images)
     except AlbumNotExistsException:
         return Response(StatusCode.NotFound_404)
-    except:
+    except Exception as e:
         return Response(StatusCode.InternalServerError_500)
 
 

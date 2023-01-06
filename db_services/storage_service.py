@@ -51,6 +51,7 @@ class StorageService:
         :param blob_path: Path of the blob to get.
         :return: File contents as bytes.
         """
+
         return self._bucket.blob(blob_path).download_as_bytes()
 
     def delete_file(self, blob_path: str) -> None:

@@ -10,12 +10,14 @@ class SocketServer:
     """A secure, multi-threaded socket server."""
 
     def __init__(self, framework):
-        self._address = ('0.0.0.0', 20200)
+        self._address = ('0.0.0.0', 30200)
         self._socket: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket: SSLSocket = ssl.wrap_socket(self._socket,
-                                                  certfile=r'C:\Certbot\live\vm128.hisham.ru\fullchain.pem',
-                                                  keyfile=r'C:\Certbot\live\vm128.hisham.ru\privkey.pem',
-                                                  server_side=True)
+        # self._socket: SSLSocket = ssl.wrap_socket(self._socket,
+        #                                           certfile=r'fullchain.pem',
+        #                                           keyfile=r'privkey.pem',
+        #                                           # certfile=r'C:\Certbot\live\vm128.hisham.ru\fullchain.pem',
+        #                                           # keyfile=r'C:\Certbot\live\vm128.hisham.ru\privkey.pem',
+        #                                           server_side=True)
         self._client_accepting_thread = threading.Thread(target=self.__client_acceptor)
         self._active = False
         self._framework = framework
